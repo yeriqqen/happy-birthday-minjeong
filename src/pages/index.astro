@@ -1,7 +1,6 @@
 ---
 import BirthdayCake from "../components/BirthdayCake.tsx";
-import VolumeToggle from "../components/VolumeToggle.tsx";
-import PhotoRain from "../components/PhotoRain.tsx";
+import BirthdayExperience from "../components/BirthdayExperience.tsx";
 
 const photos: string[] = [
   "IMG_0005.jpg",
@@ -167,7 +166,6 @@ const photos: string[] = [
       /* BirthdayCake is hidden while the photo gallery is shown — uncomment to restore */
     }
     {/* <BirthdayCake client:load /> */}
-    <PhotoRain photos={photos} client:load />
-    <VolumeToggle client:load />
+    <BirthdayExperience photos={photos} client:load />
   </body>
 </html>

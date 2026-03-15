@@ -2,6 +2,9 @@ import { useEffect, useState, useMemo } from 'react';
 
 interface PhotoRainProps {
     photos: string[];
+    background?: string;
+    zIndex?: number;
+    startFresh?: boolean;
 }
 
 const PHOTO_W = 420; // px
@@ -33,7 +36,12 @@ interface PhotoItem {
     driftX: number;
 }
 
-export default function PhotoRain({ photos }: PhotoRainProps) {
+export default function PhotoRain({
+    photos,
+    background = '#1a1a2e',
+    zIndex = 5,
+    startFresh = false,
+}: PhotoRainProps) {
     const [vpWidth, setVpWidth] = useState(0);
     const [vpHeight, setVpHeight] = useState(0);
     const [focusedSrc, setFocusedSrc] = useState<string | null>(null);
@@ -99,6 +107,9 @@ export default function PhotoRain({ photos }: PhotoRainProps) {
             return photos.map(({ src, rotation }, j) => {
                 const baseDuration = FALL_DURATION + (Math.random() - 0.5) * DURATION_JITTER;
                 const duration = baseDuration * LOOP_MULTIPLIER;
+                const delay = startFresh
+                    ? j * 1.25 + Math.random() * 0.45
+                    : -Math.random() * duration;
 
                 return {
                     key: `${ci}-${j}-${src}`,
@@ -108,14 +119,14 @@ export default function PhotoRain({ photos }: PhotoRainProps) {
                         Math.max(EDGE_MARGIN, cx + (Math.random() - 0.5) * HORIZONTAL_JITTER)
                     ),
                     rotation,
-                    // Randomized phase prevents photos from falling in perfect sequences.
-                    delay: -Math.random() * duration,
+                    // Fresh-start mode reveals from the top; otherwise, randomize phase.
+                    delay,
                     duration,
                     driftX: (Math.random() - 0.5) * 34,
                 };
             });
         });
-    }, [vpWidth, vpHeight, shuffledPhotos]);
+    }, [vpWidth, vpHeight, shuffledPhotos, startFresh]);
 
     if (!vpWidth || !vpHeight) return null;
 
@@ -124,9 +135,9 @@ export default function PhotoRain({ photos }: PhotoRainProps) {
             style={{
                 position: 'fixed',
                 inset: 0,
-                background: '#1a1a2e',
+                background,
                 overflow: 'hidden',
-                zIndex: 5,
+                zIndex,
             }}
         >
             <style>{`
@@ -186,6 +197,7 @@ export default function PhotoRain({ photos }: PhotoRainProps) {
                         width: `${PHOTO_W}px`,
                         height: `${PHOTO_H}px`,
                         animation: `photoFall ${duration}s linear ${delay}s infinite`,
+                        animationFillMode: startFresh ? 'backwards' : 'none',
                         cursor: 'zoom-in',
                         // CSS custom property lets the keyframe share the rotation value.
                         ['--photo-rot' as string]: `${rotation}deg`,
@@ -197,8 +209,9 @@ export default function PhotoRain({ photos }: PhotoRainProps) {
                         alt=""
                         width={PHOTO_W}
                         height={PHOTO_H}
-                        loading="lazy"
-                        decoding="async"
+                        loading="eager"
+                        decoding="sync"
+                        fetchPriority="high"
                         style={{
                             width: '100%',
                             height: '100%',
