@@ -176,6 +176,41 @@ function useResponsiveScale() {
     return scale;
 }
 
+interface CakeAssemblyProps {
+    scale: number;
+    position?: [number, number, number];
+}
+
+function CakeAssembly({ scale, position = [0, 0, 0] }: CakeAssemblyProps) {
+    return (
+        <group position={position}>
+            <Cake scale={scale} />
+            <CakeLayerBengala scale={scale} />
+
+            {BENGALA_CONFIG.angles.map((angleDeg, index) => {
+                const angleRad = (angleDeg * Math.PI) / 180;
+                const x = Math.cos(angleRad) * BENGALA_CONFIG.circleRadius;
+                const z = Math.sin(angleRad) * BENGALA_CONFIG.circleRadius;
+
+                return (
+                    <SparklerParticles
+                        key={index}
+                        centerX={x}
+                        centerY={BENGALA_CONFIG.yPosition}
+                        centerZ={z}
+                        spread={BENGALA_CONFIG.particleSpread}
+                        particleCount={BENGALA_CONFIG.particlesPerBengala}
+                        particleSize={BENGALA_CONFIG.particleSize}
+                    />
+                );
+            })}
+
+            <Candle2 scale={scale} />
+            <Candle3 scale={scale} />
+        </group>
+    );
+}
+
 export default function BirthdayCake() {
     const scale = useResponsiveScale();
 
@@ -191,30 +226,7 @@ export default function BirthdayCake() {
                     <spotLight position={[0, 10, 0]} angle={0.3} penumbra={1} intensity={1} />
                     <pointLight position={[-5, 5, 5]} intensity={0.5} />
 
-                    <Cake scale={scale} />
-                    <CakeLayerBengala scale={scale} />
-
-                    {/* Render 8 sparkler particle systems around the circle */}
-                    {BENGALA_CONFIG.angles.map((angleDeg, index) => {
-                        const angleRad = (angleDeg * Math.PI) / 180;
-                        const x = Math.cos(angleRad) * BENGALA_CONFIG.circleRadius;
-                        const z = Math.sin(angleRad) * BENGALA_CONFIG.circleRadius;
-
-                        return (
-                            <SparklerParticles
-                                key={index}
-                                centerX={x}
-                                centerY={BENGALA_CONFIG.yPosition}
-                                centerZ={z}
-                                spread={BENGALA_CONFIG.particleSpread}
-                                particleCount={BENGALA_CONFIG.particlesPerBengala}
-                                particleSize={BENGALA_CONFIG.particleSize}
-                            />
-                        );
-                    })}
-
-                    <Candle2 scale={scale} />
-                    <Candle3 scale={scale} />
+                    <CakeAssembly scale={scale} position={[0, 1, 0]} />
 
                     <Environment preset="sunset" />
                     <OrbitControls
@@ -224,7 +236,13 @@ export default function BirthdayCake() {
                         maxDistance={10}
                     />
                     <EffectComposer>
-                        <Bloom luminanceThreshold={1} mipmapBlur intensity={0} />
+                        <Bloom
+                            intensity={1.5}          // High enough to be noticed
+                            luminanceThreshold={0.5}  // Only the flames glow
+                            luminanceSmoothing={0.1}  // Smooth transition
+                            mipmapBlur={true}         // High-quality blur
+                            radius={0.5}              // Medium spread
+                        />
                     </EffectComposer>
                 </Suspense>
             </Canvas>
