@@ -1,0 +1,253 @@
+import { useEffect, useState, useMemo } from 'react';
+
+interface PhotoRainProps {
+    photos: string[];
+}
+
+const PHOTO_W = 420; // px
+const PHOTO_H = 500; // px — aspect ratio kept generic, objectFit covers the rest
+const EDGE_MARGIN = 14; // px: keep 10-20px breathing room near viewport borders
+const TARGET_COLUMN_STEP_RATIO = 0.8; // <1 keeps partial horizontal overlap
+const MIN_VERTICAL_SPACING_RATIO = 0.75; // <1 allows partial vertical overlap
+const FALL_DURATION = 12; // seconds
+const DURATION_JITTER = 2.6; // seconds
+const HORIZONTAL_JITTER = 36; // px
+const LOOP_MULTIPLIER = 4; // 4x longer loop, with same fall speed during active window
+
+function shuffle<T>(arr: T[]): T[] {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+
+interface PhotoItem {
+    key: string;
+    src: string;
+    left: number;
+    rotation: number;
+    delay: number;
+    duration: number;
+    driftX: number;
+}
+
+export default function PhotoRain({ photos }: PhotoRainProps) {
+    const [vpWidth, setVpWidth] = useState(0);
+    const [vpHeight, setVpHeight] = useState(0);
+    const [focusedSrc, setFocusedSrc] = useState<string | null>(null);
+
+    useEffect(() => {
+        const update = () => {
+            setVpWidth(window.innerWidth);
+            setVpHeight(window.innerHeight);
+        };
+        update();
+        window.addEventListener('resize', update);
+        return () => window.removeEventListener('resize', update);
+    }, []);
+
+    useEffect(() => {
+        if (!focusedSrc) return;
+
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setFocusedSrc(null);
+            }
+        };
+
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [focusedSrc]);
+
+    // Shuffled once on mount so the order is random but stable across re-renders.
+    const shuffledPhotos = useMemo(() => shuffle(photos), [photos]);
+
+    const items = useMemo<PhotoItem[]>(() => {
+        if (!vpWidth || !vpHeight) return [];
+
+        const availableWidth = Math.max(PHOTO_W, vpWidth - EDGE_MARGIN * 2);
+
+        // Fill almost the whole viewport width while keeping only small side margins.
+        const desiredStep = PHOTO_W * TARGET_COLUMN_STEP_RATIO;
+        const columns = Math.max(1, Math.floor((availableWidth - PHOTO_W) / desiredStep) + 1);
+        const laneStart = EDGE_MARGIN;
+        const laneSpan = Math.max(0, availableWidth - PHOTO_W);
+        const columnStep = columns > 1 ? laneSpan / (columns - 1) : 0;
+
+        // Allow only limited overlap by keeping a minimum spacing between photos.
+        const minVerticalSpacing = PHOTO_H * MIN_VERTICAL_SPACING_RATIO;
+        const maxPerCol = Math.max(1, Math.floor((vpHeight + 2 * PHOTO_H) / minVerticalSpacing));
+
+        // Include all photos in the rain cycle.
+        const pool = shuffledPhotos;
+
+        const colBuckets: { src: string; rotation: number }[][] =
+            Array.from({ length: columns }, () => []);
+
+        pool.forEach((src, i) => {
+            colBuckets[i % columns].push({
+                src,
+                rotation: (Math.random() - 0.5) * 14, // -7° to +7°
+            });
+        });
+
+        return colBuckets.flatMap((photos, ci) => {
+            const cx = laneStart + ci * columnStep;
+
+            return photos.map(({ src, rotation }, j) => {
+                const baseDuration = FALL_DURATION + (Math.random() - 0.5) * DURATION_JITTER;
+                const duration = baseDuration * LOOP_MULTIPLIER;
+
+                return {
+                    key: `${ci}-${j}-${src}`,
+                    src,
+                    left: Math.min(
+                        vpWidth - EDGE_MARGIN - PHOTO_W,
+                        Math.max(EDGE_MARGIN, cx + (Math.random() - 0.5) * HORIZONTAL_JITTER)
+                    ),
+                    rotation,
+                    // Randomized phase prevents photos from falling in perfect sequences.
+                    delay: -Math.random() * duration,
+                    duration,
+                    driftX: (Math.random() - 0.5) * 34,
+                };
+            });
+        });
+    }, [vpWidth, vpHeight, shuffledPhotos]);
+
+    if (!vpWidth || !vpHeight) return null;
+
+    return (
+        <div
+            style={{
+                position: 'fixed',
+                inset: 0,
+                background: '#1a1a2e',
+                overflow: 'hidden',
+                zIndex: 5,
+            }}
+        >
+            <style>{`
+                @keyframes photoFall {
+                    0% {
+                        transform: translate3d(0, -${PHOTO_H * 2}px, 0) rotate(var(--photo-rot));
+                        opacity: 0;
+                    }
+                    2%  { opacity: 1; }
+                    23% { opacity: 1; }
+                    25% {
+                        transform: translate3d(var(--drift-x), calc(100vh + ${PHOTO_H * 2}px), 0) rotate(var(--photo-rot));
+                        opacity: 0;
+                    }
+                    100% {
+                        transform: translate3d(var(--drift-x), calc(100vh + ${PHOTO_H * 2}px), 0) rotate(var(--photo-rot));
+                        opacity: 0;
+                    }
+                }
+
+                @keyframes focusBackdropIn {
+                    from {
+                        opacity: 0;
+                    }
+                    to {
+                        opacity: 1;
+                    }
+                }
+
+                @keyframes photoFocusIn {
+                    0% {
+                        opacity: 0;
+                        transform: perspective(1200px) translateZ(-260px) scale(0.72) rotateX(8deg);
+                        filter: saturate(0.9) blur(1px);
+                    }
+                    70% {
+                        opacity: 1;
+                        transform: perspective(1200px) translateZ(0) scale(1.03) rotateX(0deg);
+                        filter: saturate(1.03) blur(0);
+                    }
+                    100% {
+                        opacity: 1;
+                        transform: perspective(1200px) translateZ(0) scale(1) rotateX(0deg);
+                        filter: saturate(1) blur(0);
+                    }
+                }
+            `}</style>
+
+            {items.map(({ key, src, left, rotation, delay, duration, driftX }) => (
+                <div
+                    key={key}
+                    onClick={() => setFocusedSrc(src)}
+                    style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: `${left}px`,
+                        width: `${PHOTO_W}px`,
+                        height: `${PHOTO_H}px`,
+                        animation: `photoFall ${duration}s linear ${delay}s infinite`,
+                        cursor: 'zoom-in',
+                        // CSS custom property lets the keyframe share the rotation value.
+                        ['--photo-rot' as string]: `${rotation}deg`,
+                        ['--drift-x' as string]: `${driftX}px`,
+                    } as React.CSSProperties}
+                >
+                    <img
+                        src={`/photos/${src}`}
+                        alt=""
+                        width={PHOTO_W}
+                        height={PHOTO_H}
+                        loading="lazy"
+                        decoding="async"
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            borderRadius: '10px',
+                            boxShadow: '0 6px 24px rgba(0,0,0,0.65)',
+                            display: 'block',
+                        }}
+                    />
+                </div>
+            ))}
+
+            {focusedSrc && (
+                <div
+                    onClick={() => setFocusedSrc(null)}
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        zIndex: 30,
+                        background: 'rgba(6, 8, 18, 0.78)',
+                        backdropFilter: 'blur(5px)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '24px',
+                        animation: 'focusBackdropIn 220ms ease-out',
+                    }}
+                >
+                    <img
+                        onClick={event => event.stopPropagation()}
+                        src={`/photos/${focusedSrc}`}
+                        alt="Focused photo"
+                        width={PHOTO_W}
+                        height={PHOTO_H}
+                        style={{
+                            width: 'min(92vw, 860px)',
+                            height: 'auto',
+                            maxHeight: '90vh',
+                            objectFit: 'contain',
+                            borderRadius: 0,
+                            boxShadow: 'none',
+                            display: 'block',
+                            transformOrigin: 'center center',
+                            willChange: 'transform, opacity, filter',
+                            animation: 'photoFocusIn 340ms cubic-bezier(0.18, 0.82, 0.2, 1) both',
+                        }}
+                    />
+                </div>
+            )}
+        </div>
+    );
+}
