@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    overflow: hidden;
+  }
+}
+
+@keyframes scene-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes bulbs-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bulb-blink {
+  0% {
+    opacity: 0.14;
+    filter: drop-shadow(0 0 6px rgba(255, 235, 145, 0.45))
+      drop-shadow(0 0 12px rgba(255, 210, 95, 0.35));
+  }
+  25% {
+    opacity: 0.92;
+    filter: drop-shadow(0 0 18px rgba(255, 235, 145, 0.95))
+      drop-shadow(0 0 38px rgba(255, 210, 95, 0.82));
+  }
+  52% {
+    opacity: 0.26;
+    filter: drop-shadow(0 0 8px rgba(255, 235, 145, 0.5))
+      drop-shadow(0 0 16px rgba(255, 210, 95, 0.4));
+  }
+  76% {
+    opacity: 1;
+    filter: drop-shadow(0 0 20px rgba(255, 235, 145, 1))
+      drop-shadow(0 0 42px rgba(255, 210, 95, 0.86));
+  }
+  100% {
+    opacity: 0.16;
+    filter: drop-shadow(0 0 7px rgba(255, 235, 145, 0.45))
+      drop-shadow(0 0 14px rgba(255, 210, 95, 0.36));
+  }
+}
+
+.animate-scene-fade-in {
+  animation: scene-fade-in 360ms ease-out both;
+}
+
+.animate-bulbs-enter {
+  animation: bulbs-enter 420ms cubic-bezier(0.2, 0.88, 0.24, 1) both;
+}

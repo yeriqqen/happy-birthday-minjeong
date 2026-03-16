@@ -132,11 +132,9 @@ export default function PhotoRain({
 
     return (
         <div
+            className="fixed inset-0 overflow-hidden"
             style={{
-                position: 'fixed',
-                inset: 0,
                 background,
-                overflow: 'hidden',
                 zIndex,
             }}
         >
@@ -190,15 +188,13 @@ export default function PhotoRain({
                 <div
                     key={key}
                     onClick={() => setFocusedSrc(src)}
+                    className="absolute top-0 cursor-zoom-in"
                     style={{
-                        position: 'absolute',
-                        top: 0,
                         left: `${left}px`,
                         width: `${PHOTO_W}px`,
                         height: `${PHOTO_H}px`,
                         animation: `photoFall ${duration}s linear ${delay}s infinite`,
                         animationFillMode: startFresh ? 'backwards' : 'none',
-                        cursor: 'zoom-in',
                         // CSS custom property lets the keyframe share the rotation value.
                         ['--photo-rot' as string]: `${rotation}deg`,
                         ['--drift-x' as string]: `${driftX}px`,
@@ -212,14 +208,7 @@ export default function PhotoRain({
                         loading="eager"
                         decoding="sync"
                         fetchPriority="high"
-                        style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                            borderRadius: '10px',
-                            boxShadow: '0 6px 24px rgba(0,0,0,0.65)',
-                            display: 'block',
-                        }}
+                        className="block h-full w-full rounded-[10px] object-cover shadow-[0_6px_24px_rgba(0,0,0,0.65)]"
                     />
                 </div>
             ))}
@@ -227,16 +216,10 @@ export default function PhotoRain({
             {focusedSrc && (
                 <div
                     onClick={() => setFocusedSrc(null)}
+                    className="fixed inset-0 z-30 flex items-center justify-center p-6"
                     style={{
-                        position: 'fixed',
-                        inset: 0,
-                        zIndex: 30,
                         background: 'rgba(6, 8, 18, 0.78)',
                         backdropFilter: 'blur(5px)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '24px',
                         animation: 'focusBackdropIn 220ms ease-out',
                     }}
                 >
@@ -246,16 +229,8 @@ export default function PhotoRain({
                         alt="Focused photo"
                         width={PHOTO_W}
                         height={PHOTO_H}
+                        className="block h-auto max-h-[90vh] w-[min(92vw,860px)] origin-center object-contain will-change-[transform,opacity,filter]"
                         style={{
-                            width: 'min(92vw, 860px)',
-                            height: 'auto',
-                            maxHeight: '90vh',
-                            objectFit: 'contain',
-                            borderRadius: 0,
-                            boxShadow: 'none',
-                            display: 'block',
-                            transformOrigin: 'center center',
-                            willChange: 'transform, opacity, filter',
                             animation: 'photoFocusIn 340ms cubic-bezier(0.18, 0.82, 0.2, 1) both',
                         }}
                     />

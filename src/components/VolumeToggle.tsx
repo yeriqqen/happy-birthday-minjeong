@@ -82,21 +82,7 @@ export default function VolumeToggle() {
                 onClick={handleToggle}
                 aria-pressed={!isMuted}
                 aria-label={isMuted ? 'Unmute birthday song' : 'Mute birthday song'}
-                style={{
-                    position: 'fixed',
-                    top: '20px',
-                    right: '20px',
-                    zIndex: 20,
-                    border: '1px solid rgba(255, 255, 255, 0.35)',
-                    borderRadius: '999px',
-                    padding: '0.7rem 1rem',
-                    background: 'rgba(8, 12, 28, 0.55)',
-                    color: '#fff7d6',
-                    backdropFilter: 'blur(14px)',
-                    cursor: 'pointer',
-                    font: '600 0.9rem/1.1 system-ui, sans-serif',
-                    letterSpacing: '0.04em'
-                }}
+                className="fixed right-5 top-5 z-20 cursor-pointer rounded-full border border-white/35 bg-[rgba(8,12,28,0.55)] px-4 py-3 text-[0.9rem] leading-[1.1] font-semibold tracking-[0.04em] text-[#fff7d6] backdrop-blur-[14px]"
             >
                 {isMuted ? 'Sound Off' : 'Sound On'}
             </button>

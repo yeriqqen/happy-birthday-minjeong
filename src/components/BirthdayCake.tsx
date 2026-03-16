@@ -215,10 +215,10 @@ export default function BirthdayCake() {
     const scale = useResponsiveScale();
 
     return (
-        <div style={{ width: '100vw', height: '100vh', margin: 0, padding: 0 }}>
+        <div className="m-0 h-screen w-screen p-0">
             <Canvas
                 camera={{ position: [0, 2, 5], fov: 50 }}
-                style={{ background: '#1a1a2e' }}
+                className="bg-[#1a1a2e]"
             >
                 <Suspense fallback={null}>
                     <ambientLight intensity={0.5} />

@@ -137,36 +137,13 @@ export default function BirthdayCountdown({
     }
 
     return (
-        <div
-            style={{
-                position: 'fixed',
-                inset: 0,
-                zIndex: 9999,
-                background: '#000',
-                color: '#fff',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
-                padding: '24px',
-                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-            }}
-        >
-            <p style={{ fontSize: 'clamp(0.95rem, 2.2vw, 1.2rem)', letterSpacing: '0.08em', opacity: 0.75 }}>
+        <div className="fixed inset-0 z-9999 flex flex-col items-center justify-center bg-black px-6 text-center font-mono text-white">
+            <p className="text-[clamp(0.95rem,2.2vw,1.2rem)] tracking-[0.08em] opacity-75">
                 {USE_QUICK_TEST_COUNTDOWN
                     ? `Quick test mode: ${QUICK_TEST_SECONDS}s countdown`
                     : 'Countdown to March 18 (California)'}
             </p>
-            <h1
-                style={{
-                    marginTop: '16px',
-                    fontSize: 'clamp(2.3rem, 9.5vw, 7.8rem)',
-                    lineHeight: 1.02,
-                    letterSpacing: '0.04em',
-                    fontWeight: 700,
-                }}
-            >
+            <h1 className="mt-4 text-[clamp(2.3rem,9.5vw,7.8rem)] leading-[1.02] font-bold tracking-[0.04em]">
                 {timeLeft.days}d {pad2(timeLeft.hours)}h {pad2(timeLeft.minutes)}m {pad2(timeLeft.seconds)}s
             </h1>
         </div>

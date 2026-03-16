@@ -2,6 +2,7 @@
 import { readdirSync } from "node:fs";
 import BirthdayCake from "../components/BirthdayCake.tsx";
 import BirthdayExperience from "../components/BirthdayExperience.tsx";
+import "../styles/global.css";
 
 const photos = readdirSync(new URL("../../public/photos", import.meta.url))
   .filter((name: string) => name.toLowerCase().endsWith(".webp"))
@@ -16,16 +17,6 @@ const photos = readdirSync(new URL("../../public/photos", import.meta.url))
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
     <title>Happy Birthday!</title>
-    <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-      body {
-        overflow: hidden;
-      }
-    </style>
   </head>
   <body>
     {
