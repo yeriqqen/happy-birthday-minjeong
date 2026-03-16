@@ -6,6 +6,12 @@ import { useEffect, useRef, useState } from 'react';
 export default function VolumeToggle() {
     const audioRef = useRef<HTMLAudioElement>(null);
     const [isMuted, setIsMuted] = useState(false);
+    const latestMutedRef = useRef(isMuted);
+    const birthdaySongSrc = `${import.meta.env.BASE_URL}happy_birthday.mp3`;
+
+    useEffect(() => {
+        latestMutedRef.current = isMuted;
+    }, [isMuted]);
 
     useEffect(() => {
         const audio = audioRef.current;
@@ -21,7 +27,7 @@ export default function VolumeToggle() {
 
         const tryPlay = () => {
             void audio.play().then(() => {
-                audio.muted = isMuted;
+                audio.muted = latestMutedRef.current;
             }).catch(() => {
                 // Browser autoplay can fail until the first user interaction.
             });
@@ -79,7 +85,7 @@ export default function VolumeToggle() {
 
     return (
         <>
-            <audio ref={audioRef} src="/happy_birthday.mp3" autoPlay preload="auto" playsInline loop muted />
+            <audio ref={audioRef} src={birthdaySongSrc} autoPlay preload="auto" playsInline loop muted />
             <button
                 type="button"
                 onClick={handleToggle}

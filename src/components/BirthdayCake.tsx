@@ -4,6 +4,8 @@ import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { Suspense, useState, useEffect, useRef, useMemo } from 'react';
 import * as THREE from 'three';
 
+const withBase = (assetPath: string) => `${import.meta.env.BASE_URL}${assetPath}`;
+
 // ========================================
 // BENGALA CONFIGURATION - ADJUST THESE VALUES TO MATCH YOUR 8 BENGALAS
 // ========================================
@@ -30,22 +32,22 @@ const BENGALA_CONFIG = {
 // ========================================
 
 function Cake({ scale }: { scale: number }) {
-    const { scene } = useGLTF('/cake_3d.glb');
+    const { scene } = useGLTF(withBase('cake_3d.glb'));
     return <primitive object={scene} scale={scale * 0.6} position={[0, -1.1, 0]} rotation={[0, -Math.PI / 2, 0]} />; // so this scale is cake size
 }
 
 function CakeLayerBengala({ scale }: { scale: number }) {
-    const { scene } = useGLTF('/cake_layer_1_bengala_v1.glb');
+    const { scene } = useGLTF(withBase('cake_layer_1_bengala_v1.glb'));
     return <primitive object={scene} scale={scale * 1.2} position={[0, -3.3, 0]} rotation={[0, -Math.PI / 2, 0]} />;
 }
 
 function Candle2({ scale }: { scale: number }) {
-    const { scene } = useGLTF('/candle_2.glb');
+    const { scene } = useGLTF(withBase('candle_2.glb'));
     return <primitive object={scene} scale={scale * 1.2} position={[-0.3 * scale, -0.5 * scale, -1.1 * scale]} />;
 }
 
 function Candle3({ scale }: { scale: number }) {
-    const { scene } = useGLTF('/candle_3.glb');
+    const { scene } = useGLTF(withBase('candle_3.glb'));
     return <primitive object={scene} scale={scale * 1.2} position={[0.3 * scale, -0.5 * scale, -1.1 * scale]} />;
 }
 
@@ -351,7 +353,7 @@ export default function BirthdayCake({
 }
 
 // Preload models
-useGLTF.preload('/cake_3d.glb');
-useGLTF.preload('/cake_layer_1_bengala_v1.glb');
-useGLTF.preload('/candle_2.glb');
-useGLTF.preload('/candle_3.glb');
+useGLTF.preload(withBase('cake_3d.glb'));
+useGLTF.preload(withBase('cake_layer_1_bengala_v1.glb'));
+useGLTF.preload(withBase('candle_2.glb'));
+useGLTF.preload(withBase('candle_3.glb'));

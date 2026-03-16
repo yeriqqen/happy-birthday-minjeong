@@ -8,12 +8,12 @@ interface BirthdayExperienceProps {
 }
 
 const BULB_COLORS = [
-    '/bulbs/bulb_red.png',
-    '/bulbs/bulb_orange.png',
-    '/bulbs/bulb_yellow.png',
-    '/bulbs/bulb_green.png',
-    '/bulbs/bulb_blue.png',
-    '/bulbs/bulb_pink.png',
+    'bulb_red.png',
+    'bulb_orange.png',
+    'bulb_yellow.png',
+    'bulb_green.png',
+    'bulb_blue.png',
+    'bulb_pink.png',
 ];
 
 const BIRTHDAY_LINES = [
@@ -53,8 +53,11 @@ const BUTTON_FADE_MS = 360;
 const COUNTDOWN_BUTTON_SLIDE_MS = 900;
 
 export default function BirthdayExperience({ photos }: BirthdayExperienceProps) {
+    const birthdaySongSrc = `${import.meta.env.BASE_URL}happy_birthday.mp3`;
+    const bulbFrameSrc = `${import.meta.env.BASE_URL}bulbs/bulb.png`;
+    const bulbColorSrcs = BULB_COLORS.map(name => `${import.meta.env.BASE_URL}bulbs/${name}`);
     const [phase, setPhase] = useState<
-        'countdown' | 'ready' | 'bulbs' | 'music' | 'cakeIntro' | 'cakeWish' | 'rainfall' | 'cakeReturn'
+        'countdown' | 'bulbs' | 'music' | 'cakeIntro' | 'cakeWish' | 'rainfall' | 'cakeReturn'
     >('countdown');
     const [visibleLineIndex, setVisibleLineIndex] = useState(-1);
     const [outgoingLineIndex, setOutgoingLineIndex] = useState(-1);
@@ -78,7 +81,6 @@ export default function BirthdayExperience({ photos }: BirthdayExperienceProps) 
     const [isRunawayHovered, setIsRunawayHovered] = useState(false);
     const [showRunawayButton, setShowRunawayButton] = useState(false);
     const [isRunawayButtonFading, setIsRunawayButtonFading] = useState(false);
-    const [isReadyButtonFading, setIsReadyButtonFading] = useState(false);
     const [isBulbsButtonFading, setIsBulbsButtonFading] = useState(false);
     const [isWishButtonsFading, setIsWishButtonsFading] = useState(false);
     const [isBackToCakeButtonFading, setIsBackToCakeButtonFading] = useState(false);
@@ -287,7 +289,6 @@ export default function BirthdayExperience({ photos }: BirthdayExperienceProps) 
             setShowRunawayButton(false);
             setIsRunawayButtonFading(false);
             setRunawayBtnOffset(runawayBtnHome);
-            setIsReadyButtonFading(false);
             setIsBulbsButtonFading(false);
             setIsWishButtonsFading(false);
             setIsBackToCakeButtonFading(false);
@@ -346,15 +347,6 @@ export default function BirthdayExperience({ photos }: BirthdayExperienceProps) 
 
     const showBulbs = phase === 'bulbs' || phase === 'music' || phase === 'cakeIntro';
     const isMusicPhase = phase === 'music';
-
-    const handleLightBulbs = () => {
-        setIsReadyButtonFading(true);
-        const id = window.setTimeout(() => {
-            setPhase('bulbs');
-            setIsReadyButtonFading(false);
-        }, BUTTON_FADE_MS);
-        buttonStepTimeoutsRef.current.push(id);
-    };
     const handleAddMusic = () => {
         setIsBulbsButtonFading(true);
 
@@ -520,7 +512,7 @@ export default function BirthdayExperience({ photos }: BirthdayExperienceProps) 
 
     return (
         <>
-            <audio ref={audioRef} src="/happy_birthday.mp3" preload="auto" loop playsInline />
+            <audio ref={audioRef} src={birthdaySongSrc} preload="auto" loop playsInline />
 
             {phase === 'rainfall' && (
                 <PhotoRain
@@ -536,9 +528,9 @@ export default function BirthdayExperience({ photos }: BirthdayExperienceProps) 
             {showBulbs && (
                 <div className="animate-scene-fade-in fixed inset-0 z-20 flex items-start justify-center bg-[radial-gradient(circle_at_50%_38%,#fffbe8_0%,#ffeec2_42%,#f4da8e_68%,#e2c56a_100%)]">
                     <div className="animate-bulbs-enter mt-0 w-full flex flex-row justify-around pt-0">
-                        {BULB_COLORS.map((src, index) => (
+                        {bulbColorSrcs.map((src, index) => (
                             <div key={src} className="relative mx-auto aspect-3/4 w-full max-w-30 -translate-y-8">
-                                <img src="/bulbs/bulb.png" alt="" className="block size-full object-contain" />
+                                <img src={bulbFrameSrc} alt="" className="block size-full object-contain" />
                                 <img
                                     src={src}
                                     alt=""
@@ -583,19 +575,6 @@ export default function BirthdayExperience({ photos }: BirthdayExperienceProps) 
                             {countdownHintText}
                         </p>
                     )}
-                </div>
-            )}
-
-            {phase === 'ready' && (
-                <div className="fixed inset-0 z-30 grid place-items-center bg-black p-6">
-                    <button
-                        type="button"
-                        onClick={handleLightBulbs}
-                        className="cursor-pointer rounded-full border border-white/40 bg-white/10 px-6 py-4 font-mono text-base leading-none tracking-[0.06em] text-white transition-opacity duration-300"
-                        style={{ opacity: isReadyButtonFading ? 0 : 1 }}
-                    >
-                        🩷 light the bulbs 🩷
-                    </button>
                 </div>
             )}
 

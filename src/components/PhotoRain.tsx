@@ -50,7 +50,7 @@ export default function PhotoRain({
     const [vpHeight, setVpHeight] = useState(0);
     const [focusedSrc, setFocusedSrc] = useState<string | null>(null);
     const [stoppedKeys, setStoppedKeys] = useState<Set<string>>(new Set());
-    const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
+    const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
     const rainStartAtRef = useRef<number | null>(null);
     const stopTimeoutRef = useRef<number | null>(null);
 
@@ -288,13 +288,15 @@ export default function PhotoRain({
             `}</style>
 
             {items.map(({ key, src, left, rotation, delay, duration, driftX }) => (
-                <div
+                <button
                     key={key}
+                    type="button"
+                    aria-label="Open photo"
                     ref={node => {
                         itemRefs.current[key] = node;
                     }}
                     onClick={() => setFocusedSrc(src)}
-                    className="absolute top-0 cursor-pointer"
+                    className="absolute top-0 cursor-pointer border-0 bg-transparent p-0"
                     style={{
                         display: stoppedKeys.has(key) ? 'none' : 'block',
                         left: `${left}px`,
@@ -308,7 +310,7 @@ export default function PhotoRain({
                     } as React.CSSProperties}
                 >
                     <img
-                        src={`/photos/${src}`}
+                        src={src}
                         alt=""
                         width={PHOTO_W}
                         height={PHOTO_H}
@@ -317,7 +319,7 @@ export default function PhotoRain({
                         fetchPriority="high"
                         className="block h-full w-full rounded-[10px] object-cover shadow-[0_6px_24px_rgba(0,0,0,0.65)]"
                     />
-                </div>
+                </button>
             ))}
 
             {focusedSrc && (
@@ -332,7 +334,7 @@ export default function PhotoRain({
                 >
                     <img
                         onClick={event => event.stopPropagation()}
-                        src={`/photos/${focusedSrc}`}
+                        src={focusedSrc}
                         alt="Focused photo"
                         width={PHOTO_W}
                         height={PHOTO_H}
