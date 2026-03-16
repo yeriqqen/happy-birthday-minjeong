@@ -1,3 +1,6 @@
+// VolumeToggle component has been removed because it was unused and
+// BirthdayExperience already implements its own sound toggle.
+// This file is intentionally left without any exported component.
 import { useEffect, useRef, useState } from 'react';
 
 export default function VolumeToggle() {
