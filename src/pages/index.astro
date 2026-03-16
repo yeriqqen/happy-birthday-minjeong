@@ -1,10 +1,12 @@
 ---
 import { readdirSync } from "node:fs";
+import { join } from "node:path";
 import BirthdayCake from "../components/BirthdayCake.tsx";
 import BirthdayExperience from "../components/BirthdayExperience.tsx";
 import "../styles/global.css";
 
-const photos = readdirSync(new URL("../../public/photos", import.meta.url))
+const photosDir = join(process.cwd(), "public", "photos");
+const photos = readdirSync(photosDir)
   .filter((name: string) => name.toLowerCase().endsWith(".webp"))
   .sort();
 ---
