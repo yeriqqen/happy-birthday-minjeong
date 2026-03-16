@@ -1,17 +1,30 @@
 ---
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
+import BirthdayExperience from "../components/BirthdayExperience.tsx";
+import "../styles/global.css";
 
+const photosDir = join(process.cwd(), "public", "photos");
+const photos = readdirSync(photosDir)
+  .filter((name: string) => name.toLowerCase().endsWith(".webp"))
+  .map((name: string) => `${import.meta.env.BASE_URL}photos/${name}`)
+  .sort();
 ---
 
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Happy Birthday!</title>
+  </head>
+  <body class="bg-black text-white cursor-heart">
+    {
+      /* BirthdayCake is hidden while the photo gallery is shown — uncomment to restore */
+    }
+    {/* <BirthdayCake client:load /> */}
+    <BirthdayExperience photos={photos} client:load />
+  </body>
 </html>

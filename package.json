@@ -12,6 +12,20 @@
     "astro": "astro"
   },
   "dependencies": {
-    "astro": "^6.0.3"
+    "@astrojs/react": "^5.0.0",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.5.0",
+    "@react-three/postprocessing": "^3.0.4",
+    "astro": "^6.0.3",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "three": "^0.183.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.2.1",
+    "@types/node": "^25.5.0",
+    "@types/react": "^19.2.14",
+    "@types/three": "^0.183.1",
+    "tailwindcss": "^4.2.1"
   }
 }
