@@ -7,6 +7,7 @@ const USE_QUICK_TEST_COUNTDOWN = true;
 const QUICK_TEST_SECONDS = 5;
 const PRELOAD_LEAD_MS = 60_000;
 const PRE_REVEAL_LEAD_MS = 3_000;
+const COUNTDOWN_FADE_OUT_MS = 700;
 
 interface BirthdayCountdownProps {
     holdOnComplete?: boolean;
@@ -99,6 +100,8 @@ export default function BirthdayCountdown({
     const [isComplete, setIsComplete] = useState(false);
     const [hasStartedWarmup, setHasStartedWarmup] = useState(false);
     const [hasPreReveal, setHasPreReveal] = useState(false);
+    const [isFadingOut, setIsFadingOut] = useState(false);
+    const [hasStartedExit, setHasStartedExit] = useState(false);
 
     useEffect(() => {
         const tick = () => {
@@ -120,8 +123,15 @@ export default function BirthdayCountdown({
             }
 
             if (nextTimeLeft.totalMs <= 0) {
-                setIsComplete(prev => {
-                    if (!prev) onComplete?.();
+                setHasStartedExit(prev => {
+                    if (prev) return true;
+
+                    setIsFadingOut(true);
+                    window.setTimeout(() => {
+                        onComplete?.();
+                        setIsComplete(true);
+                    }, COUNTDOWN_FADE_OUT_MS);
+
                     return true;
                 });
             }
@@ -137,7 +147,9 @@ export default function BirthdayCountdown({
     }
 
     return (
-        <div className="fixed inset-0 z-9999 flex flex-col items-center justify-center bg-black px-6 text-center font-mono text-white">
+        <div
+            className={`fixed inset-0 z-9999 flex flex-col items-center justify-center bg-black px-6 text-center font-mono text-white transition-opacity duration-700 ${isFadingOut ? 'opacity-0' : 'opacity-100'}`}
+        >
             <p className="text-[clamp(0.95rem,2.2vw,1.2rem)] tracking-[0.08em] opacity-75">
                 {USE_QUICK_TEST_COUNTDOWN
                     ? `Quick test mode: ${QUICK_TEST_SECONDS}s countdown`

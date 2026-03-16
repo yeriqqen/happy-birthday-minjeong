@@ -179,11 +179,19 @@ function useResponsiveScale() {
 interface CakeAssemblyProps {
     scale: number;
     position?: [number, number, number];
+    spinSpeed?: number;
 }
 
-function CakeAssembly({ scale, position = [0, 0, 0] }: CakeAssemblyProps) {
+function CakeAssembly({ scale, position = [0, 0, 0], spinSpeed = 0 }: CakeAssemblyProps) {
+    const groupRef = useRef<THREE.Group>(null);
+
+    useFrame((_, delta) => {
+        if (!groupRef.current || spinSpeed <= 0) return;
+        groupRef.current.rotation.y += delta * spinSpeed;
+    });
+
     return (
-        <group position={position}>
+        <group ref={groupRef} position={position}>
             <Cake scale={scale} />
             <CakeLayerBengala scale={scale} />
 
@@ -211,14 +219,26 @@ function CakeAssembly({ scale, position = [0, 0, 0] }: CakeAssemblyProps) {
     );
 }
 
-export default function BirthdayCake() {
+interface BirthdayCakeProps {
+    cinematic?: boolean;
+    rotating?: boolean;
+    blackBackground?: boolean;
+}
+
+export default function BirthdayCake({
+    cinematic = false,
+    rotating = false,
+    blackBackground = true,
+}: BirthdayCakeProps) {
     const scale = useResponsiveScale();
+    const cameraPosition: [number, number, number] = cinematic ? [0, 2.2, 6.2] : [0, 2, 5];
 
     return (
         <div className="m-0 h-screen w-screen p-0">
             <Canvas
-                camera={{ position: [0, 2, 5], fov: 50 }}
-                className="bg-[#1a1a2e]"
+                camera={{ position: cameraPosition, fov: 50 }}
+                dpr={cinematic ? [1, 1.25] : [1, 2]}
+                className={cinematic ? (blackBackground ? 'bg-black' : 'bg-transparent') : 'bg-[#1a1a2e]'}
             >
                 <Suspense fallback={null}>
                     <ambientLight intensity={0.5} />
@@ -226,11 +246,16 @@ export default function BirthdayCake() {
                     <spotLight position={[0, 10, 0]} angle={0.3} penumbra={1} intensity={1} />
                     <pointLight position={[-5, 5, 5]} intensity={0.5} />
 
-                    <CakeAssembly scale={scale} position={[0, 1, 0]} />
+                    <CakeAssembly
+                        scale={scale}
+                        position={[0, 1, 0]}
+                        spinSpeed={rotating ? 0.95 : 0}
+                    />
 
-                    <Environment preset="sunset" />
+                    <Environment preset={cinematic ? 'night' : 'sunset'} />
                     <OrbitControls
-                        enableZoom={true}
+                        autoRotate={rotating}
+                        autoRotateSpeed={rotating ? 1.8 : 0.8}
                         enablePan={false}
                         minDistance={3}
                         maxDistance={10}
