@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 const TARGET_TIME_ZONE = 'America/Los_Angeles';
 const BIRTHDAY_MONTH_INDEX = 2; // March (0-based)
 const BIRTHDAY_DAY = 18;
-const USE_QUICK_TEST_COUNTDOWN = true;
+const USE_QUICK_TEST_COUNTDOWN = false;
 const QUICK_TEST_SECONDS = 5;
 const PRELOAD_LEAD_MS = 60_000;
 const PRE_REVEAL_LEAD_MS = 3_000;
