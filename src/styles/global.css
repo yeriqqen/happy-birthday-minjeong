@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+@theme {
+  --cursor-heart: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' style='font-size:30px'><text y='35'>💘</text></svg>"), auto;
+}
+
 @layer base {
   *,
   *::before,

@@ -1,10 +1,12 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 
 interface PhotoRainProps {
     photos: string[];
     background?: string;
     zIndex?: number;
     startFresh?: boolean;
+    stopping?: boolean;
+    onStopped?: () => void;
 }
 
 const PHOTO_W = 420; // px
@@ -41,12 +43,20 @@ export default function PhotoRain({
     background = '#1a1a2e',
     zIndex = 5,
     startFresh = false,
+    stopping = false,
+    onStopped,
 }: PhotoRainProps) {
     const [vpWidth, setVpWidth] = useState(0);
     const [vpHeight, setVpHeight] = useState(0);
     const [focusedSrc, setFocusedSrc] = useState<string | null>(null);
+    const [stoppedKeys, setStoppedKeys] = useState<Set<string>>(new Set());
+    const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
+    const rainStartAtRef = useRef<number | null>(null);
+    const stopTimeoutRef = useRef<number | null>(null);
 
     useEffect(() => {
+        rainStartAtRef.current = performance.now();
+
         const update = () => {
             setVpWidth(window.innerWidth);
             setVpHeight(window.innerHeight);
@@ -54,6 +64,18 @@ export default function PhotoRain({
         update();
         window.addEventListener('resize', update);
         return () => window.removeEventListener('resize', update);
+    }, []);
+
+    useEffect(() => {
+        setStoppedKeys(new Set());
+    }, [photos, startFresh]);
+
+    useEffect(() => {
+        return () => {
+            if (stopTimeoutRef.current !== null) {
+                window.clearTimeout(stopTimeoutRef.current);
+            }
+        };
     }, []);
 
     useEffect(() => {
@@ -128,6 +150,87 @@ export default function PhotoRain({
         });
     }, [vpWidth, vpHeight, shuffledPhotos, startFresh]);
 
+    useEffect(() => {
+        if (!stopping) {
+            return;
+        }
+
+        if (stopTimeoutRef.current !== null) {
+            window.clearTimeout(stopTimeoutRef.current);
+            stopTimeoutRef.current = null;
+        }
+
+        const startedAt = rainStartAtRef.current ?? performance.now();
+        const elapsedSeconds = Math.max(0, (performance.now() - startedAt) / 1000);
+        const newlyStopped = new Set<string>();
+        let longestRemainingMs = 0;
+
+        items.forEach(({ key, delay, duration, driftX, rotation }) => {
+            const node = itemRefs.current[key];
+            if (!node) {
+                newlyStopped.add(key);
+                return;
+            }
+
+            const localElapsed = elapsedSeconds - delay;
+
+            if (localElapsed <= 0) {
+                newlyStopped.add(key);
+                node.style.opacity = '0';
+                node.style.animation = 'none';
+                return;
+            }
+
+            const progressSeconds = localElapsed % duration;
+            const progress = progressSeconds / duration;
+
+            if (progress >= 0.25) {
+                newlyStopped.add(key);
+                node.style.opacity = '0';
+                node.style.animation = 'none';
+                return;
+            }
+
+            const remainingSeconds = (0.25 - progress) * duration;
+            const computed = window.getComputedStyle(node);
+            const currentOpacity = computed.opacity;
+            const currentTransform = computed.transform === 'none' ? '' : computed.transform;
+
+            node.style.animation = 'none';
+            node.style.opacity = currentOpacity;
+            node.style.transform = currentTransform;
+
+            const finishAnimation = node.animate(
+                [
+                    { transform: currentTransform, opacity: Number(currentOpacity) || 1 },
+                    {
+                        transform: `translate3d(${driftX}px, calc(100vh + ${PHOTO_H * 2}px), 0) rotate(${rotation}deg)`,
+                        opacity: 0,
+                    },
+                ],
+                {
+                    duration: Math.max(80, remainingSeconds * 1000),
+                    easing: 'linear',
+                    fill: 'forwards',
+                }
+            );
+
+            finishAnimation.onfinish = () => {
+                newlyStopped.add(key);
+                setStoppedKeys(new Set(newlyStopped));
+            };
+
+            longestRemainingMs = Math.max(longestRemainingMs, remainingSeconds * 1000);
+        });
+
+        setStoppedKeys(new Set(newlyStopped));
+
+        stopTimeoutRef.current = window.setTimeout(() => {
+            setStoppedKeys(new Set(items.map(item => item.key)));
+            onStopped?.();
+        }, Math.max(120, longestRemainingMs + 80));
+    }, [items, onStopped, stopping]);
+
     if (!vpWidth || !vpHeight) return null;
 
     return (
@@ -187,9 +290,13 @@ export default function PhotoRain({
             {items.map(({ key, src, left, rotation, delay, duration, driftX }) => (
                 <div
                     key={key}
+                    ref={node => {
+                        itemRefs.current[key] = node;
+                    }}
                     onClick={() => setFocusedSrc(src)}
-                    className="absolute top-0 cursor-zoom-in"
+                    className="absolute top-0 cursor-pointer"
                     style={{
+                        display: stoppedKeys.has(key) ? 'none' : 'block',
                         left: `${left}px`,
                         width: `${PHOTO_W}px`,
                         height: `${PHOTO_H}px`,

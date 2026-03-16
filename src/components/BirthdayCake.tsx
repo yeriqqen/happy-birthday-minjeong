@@ -56,17 +56,29 @@ interface SparklerParticlesProps {
     spread: number;
     particleCount: number;
     particleSize: number;
+    emitEnabled: boolean;
 }
 
-function SparklerParticles({ centerX, centerY, centerZ, spread, particleCount, particleSize }: SparklerParticlesProps) {
+function SparklerParticles({
+    centerX,
+    centerY,
+    centerZ,
+    spread,
+    particleCount,
+    particleSize,
+    emitEnabled,
+}: SparklerParticlesProps) {
     const particlesRef = useRef<THREE.Points>(null);
+    const materialRef = useRef<THREE.PointsMaterial>(null);
+    const opacityRef = useRef(0.8);
+    const previousEmitEnabledRef = useRef(emitEnabled);
+    const documentHiddenRef = useRef(false);
 
-    const { geometry, velocities, initialPositions } = useMemo(() => {
+    const { geometry, velocities } = useMemo(() => {
         const positions = new Float32Array(particleCount * 3);
         const velocities = new Float32Array(particleCount * 3);
         const colors = new Float32Array(particleCount * 3);
         const lifetimes = new Float32Array(particleCount);
-        const initialPositions = new Float32Array(particleCount * 3);
 
         for (let i = 0; i < particleCount; i++) {
             // Start position around the bengala center
@@ -79,11 +91,6 @@ function SparklerParticles({ centerX, centerY, centerZ, spread, particleCount, p
             positions[i * 3] = baseX;
             positions[i * 3 + 1] = baseY;
             positions[i * 3 + 2] = baseZ;
-
-            // Store initial position for reset
-            initialPositions[i * 3] = baseX;
-            initialPositions[i * 3 + 1] = baseY;
-            initialPositions[i * 3 + 2] = baseZ;
 
             // Upward velocity with slight random spread
             velocities[i * 3] = (Math.random() - 0.5) * 0.008;
@@ -104,33 +111,90 @@ function SparklerParticles({ centerX, centerY, centerZ, spread, particleCount, p
         geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
         geometry.setAttribute('lifetime', new THREE.BufferAttribute(lifetimes, 1));
 
-        return { geometry, velocities, initialPositions };
+        return { geometry, velocities };
     }, [centerX, centerY, centerZ, spread, particleCount]);
 
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            documentHiddenRef.current = document.hidden;
+        };
+
+        handleVisibilityChange();
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, []);
+
+    useEffect(() => {
+        if (!particlesRef.current) {
+            previousEmitEnabledRef.current = emitEnabled;
+            return;
+        }
+
+        const wasEmitting = previousEmitEnabledRef.current;
+        previousEmitEnabledRef.current = emitEnabled;
+
+        if (emitEnabled && !wasEmitting) {
+            const positions = particlesRef.current.geometry.attributes.position.array as Float32Array;
+            const lifetimes = particlesRef.current.geometry.attributes.lifetime.array as Float32Array;
+
+            for (let i = 0; i < particleCount; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * spread;
+                positions[i * 3] = centerX + Math.cos(angle) * radius;
+                positions[i * 3 + 1] = centerY + Math.random() * 0.1;
+                positions[i * 3 + 2] = centerZ + Math.sin(angle) * radius;
+                lifetimes[i] = Math.random();
+            }
+
+            opacityRef.current = 0.35;
+            if (materialRef.current) {
+                materialRef.current.opacity = opacityRef.current;
+            }
+
+            particlesRef.current.geometry.attributes.position.needsUpdate = true;
+            particlesRef.current.geometry.attributes.lifetime.needsUpdate = true;
+        }
+    }, [centerX, centerY, centerZ, emitEnabled, particleCount, spread]);
+
     useFrame((state, delta) => {
-        if (!particlesRef.current) return;
+        if (!particlesRef.current || documentHiddenRef.current) return;
+
+        const safeDelta = Math.min(delta, 1 / 30);
 
         const positions = particlesRef.current.geometry.attributes.position.array as Float32Array;
         const lifetimes = particlesRef.current.geometry.attributes.lifetime.array as Float32Array;
 
         for (let i = 0; i < particleCount; i++) {
             // Update lifetime
-            lifetimes[i] += delta * 0.6;
+            lifetimes[i] += safeDelta * 0.6;
 
             if (lifetimes[i] > 1.0) {
-                // Reset particle to initial position
-                const angle = Math.random() * Math.PI * 2;
-                const radius = Math.random() * spread;
-                positions[i * 3] = centerX + Math.cos(angle) * radius;
-                positions[i * 3 + 1] = centerY + Math.random() * 0.1;
-                positions[i * 3 + 2] = centerZ + Math.sin(angle) * radius;
-                lifetimes[i] = 0;
+                if (emitEnabled) {
+                    // Reset particle to initial position while emission is enabled.
+                    const angle = Math.random() * Math.PI * 2;
+                    const radius = Math.random() * spread;
+                    positions[i * 3] = centerX + Math.cos(angle) * radius;
+                    positions[i * 3 + 1] = centerY + Math.random() * 0.1;
+                    positions[i * 3 + 2] = centerZ + Math.sin(angle) * radius;
+                    lifetimes[i] = 0;
+                } else {
+                    lifetimes[i] = 1;
+                }
             } else {
                 // Move particle upward
                 positions[i * 3] += velocities[i * 3];
                 positions[i * 3 + 1] += velocities[i * 3 + 1];
                 positions[i * 3 + 2] += velocities[i * 3 + 2];
             }
+        }
+
+        if (materialRef.current) {
+            if (emitEnabled) {
+                opacityRef.current = Math.min(0.8, opacityRef.current + safeDelta * 0.9);
+            } else {
+                opacityRef.current = Math.max(0, opacityRef.current - safeDelta * 0.45);
+            }
+            materialRef.current.opacity = opacityRef.current;
         }
 
         particlesRef.current.geometry.attributes.position.needsUpdate = true;
@@ -140,6 +204,7 @@ function SparklerParticles({ centerX, centerY, centerZ, spread, particleCount, p
     return (
         <points ref={particlesRef} geometry={geometry}>
             <pointsMaterial
+                ref={materialRef}
                 size={particleSize}
                 vertexColors
                 transparent
@@ -180,9 +245,15 @@ interface CakeAssemblyProps {
     scale: number;
     position?: [number, number, number];
     spinSpeed?: number;
+    sparksEnabled?: boolean;
 }
 
-function CakeAssembly({ scale, position = [0, 0, 0], spinSpeed = 0 }: CakeAssemblyProps) {
+function CakeAssembly({
+    scale,
+    position = [0, 0, 0],
+    spinSpeed = 0,
+    sparksEnabled = true,
+}: CakeAssemblyProps) {
     const groupRef = useRef<THREE.Group>(null);
 
     useFrame((_, delta) => {
@@ -209,6 +280,7 @@ function CakeAssembly({ scale, position = [0, 0, 0], spinSpeed = 0 }: CakeAssemb
                         spread={BENGALA_CONFIG.particleSpread}
                         particleCount={BENGALA_CONFIG.particlesPerBengala}
                         particleSize={BENGALA_CONFIG.particleSize}
+                        emitEnabled={sparksEnabled}
                     />
                 );
             })}
@@ -223,12 +295,14 @@ interface BirthdayCakeProps {
     cinematic?: boolean;
     rotating?: boolean;
     blackBackground?: boolean;
+    sparksEnabled?: boolean;
 }
 
 export default function BirthdayCake({
     cinematic = false,
     rotating = false,
     blackBackground = true,
+    sparksEnabled = true,
 }: BirthdayCakeProps) {
     const scale = useResponsiveScale();
     const cameraPosition: [number, number, number] = cinematic ? [0, 2.2, 6.2] : [0, 2, 5];
@@ -250,6 +324,7 @@ export default function BirthdayCake({
                         scale={scale}
                         position={[0, 1, 0]}
                         spinSpeed={rotating ? 0.95 : 0}
+                        sparksEnabled={sparksEnabled}
                     />
 
                     <Environment preset={cinematic ? 'night' : 'sunset'} />
