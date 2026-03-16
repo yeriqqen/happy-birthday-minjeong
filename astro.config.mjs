@@ -7,11 +7,13 @@ const owner = process.env.GITHUB_REPOSITORY_OWNER;
 const isUserOrOrgPagesRepo = repo.endsWith('.github.io');
 const isGithubActionsBuild = Boolean(process.env.GITHUB_ACTIONS);
 
-const site = owner
-   ? `https://${owner}.github.io${!isUserOrOrgPagesRepo && isGithubActionsBuild && repo ? `/${repo}` : ''}`
-  : undefined;
+const site = owner ? `https://${owner}.github.io` : undefined;
 
- const base = '/';
+const base = isGithubActionsBuild
+  ? isUserOrOrgPagesRepo
+    ? '/'
+    : `/${repo}/`
+  : '/';
 
 // https://astro.build/config
 export default defineConfig({
