@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 const TARGET_TIME_ZONE = 'America/Los_Angeles';
 const BIRTHDAY_MONTH_INDEX = 2; // March (0-based)
 const BIRTHDAY_DAY = 18;
-const USE_QUICK_TEST_COUNTDOWN = true;
+const USE_QUICK_TEST_COUNTDOWN = false;
 const QUICK_TEST_SECONDS = 5;
 const PRELOAD_LEAD_MS = 60_000;
 const PRE_REVEAL_LEAD_MS = 3_000;
@@ -153,7 +153,7 @@ export default function BirthdayCountdown({
             <p className="text-[clamp(0.95rem,2.2vw,1.2rem)] tracking-[0.08em] opacity-75">
                 {USE_QUICK_TEST_COUNTDOWN
                     ? `Quick test mode: ${QUICK_TEST_SECONDS}s countdown`
-                    : 'Countdown to March 18 (California)'}
+                    : 'Your birthday is in'}
             </p>
             <h1 className="mt-4 text-[clamp(2.3rem,9.5vw,7.8rem)] leading-[1.02] font-bold tracking-[0.04em]">
                 {timeLeft.days}d {pad2(timeLeft.hours)}h {pad2(timeLeft.minutes)}m {pad2(timeLeft.seconds)}s

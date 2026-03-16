@@ -23,9 +23,9 @@ const BIRTHDAY_LINES = [
     'HAPPY BIRTHDAY TO YOU.',
 ];
 
-const LYRIC_STEP_MS = 3000;
+const LYRIC_STEP_MS = 3400;
 const LYRIC_TRANSITION_MS = 620;
-const POST_LYRICS_HOLD_MS = 1200;
+const POST_LYRICS_HOLD_MS = 2000;
 const CAKE_ENTRY_MS = 5500;
 const WISH_PROMPT_DELAY_MS = 600;
 const WISH_PROMPT_VISIBLE_MS = 2600;
@@ -33,6 +33,24 @@ const WISH_PROMPT_FADE_MS = 500;
 const OF_COURSE_DELAY_MS = 800;
 const POST_BLOW_RAIN_DELAY_MS = 3000;
 const BACK_TO_CAKE_BUTTON_DELAY_MS = 10000;
+
+const PRE_WISH_PHRASES = [
+    'happy birthday wify',
+    'you are my superstar wife',
+    'you are my everything babe',
+    'thank you for existing',
+    'thank you for being born today',
+    'you deserve the whole world',
+    'I love you ❤️',
+    'make a wish now',
+];
+const PRE_WISH_PHRASE_FADE_MS = 500;
+const PRE_WISH_PHRASE_VISIBLE_MS = 2000;
+const PRE_WISH_PHRASE_OUT_MS = 500;
+const PRE_WISH_PHRASE_GAP_MS = 300;
+const RUNAWAY_BUTTON_FADE_MS = 420;
+const BUTTON_FADE_MS = 360;
+const COUNTDOWN_BUTTON_SLIDE_MS = 900;
 
 export default function BirthdayExperience({ photos }: BirthdayExperienceProps) {
     const [phase, setPhase] = useState<
@@ -50,6 +68,49 @@ export default function BirthdayExperience({ photos }: BirthdayExperienceProps) 
     const [isMuted, setIsMuted] = useState(false);
     const [isRainStopping, setIsRainStopping] = useState(false);
     const [showBackToCakeButton, setShowBackToCakeButton] = useState(false);
+    const [showWishButton, setShowWishButton] = useState(false);
+    const [countdownHintText, setCountdownHintText] = useState('It is soooooon babe');
+    const [isCountdownDone, setIsCountdownDone] = useState(false);
+    const [isCountdownButtonCentered, setIsCountdownButtonCentered] = useState(false);
+    const [isCountdownButtonAutoPressing, setIsCountdownButtonAutoPressing] = useState(false);
+    const [preWishPhrase, setPreWishPhrase] = useState<{ text: string; left: number; top: number } | null>(null);
+    const [isPreWishPhraseVisible, setIsPreWishPhraseVisible] = useState(false);
+    const [isRunawayHovered, setIsRunawayHovered] = useState(false);
+    const [showRunawayButton, setShowRunawayButton] = useState(false);
+    const [isRunawayButtonFading, setIsRunawayButtonFading] = useState(false);
+    const [isReadyButtonFading, setIsReadyButtonFading] = useState(false);
+    const [isBulbsButtonFading, setIsBulbsButtonFading] = useState(false);
+    const [isWishButtonsFading, setIsWishButtonsFading] = useState(false);
+    const [isBackToCakeButtonFading, setIsBackToCakeButtonFading] = useState(false);
+    const [isCutePhotosButtonFading, setIsCutePhotosButtonFading] = useState(false);
+    const [runawayBtnOffset, setRunawayBtnOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+    const runawayBtnRef = useRef<HTMLButtonElement>(null);
+    const runawayBtnHome = { x: 0, y: 0 };
+
+    useEffect(() => {
+        if (!(phase === 'cakeWish' && showWishButton && showWishPrompt)) return;
+        function handleMouseMove(e: MouseEvent) {
+            const btn = runawayBtnRef.current;
+            if (!btn) return;
+            const rect = btn.getBoundingClientRect();
+            const mx = e.clientX;
+            const my = e.clientY;
+            const bx = rect.left + rect.width / 2;
+            const by = rect.top + rect.height / 2;
+            const dist = Math.sqrt((mx - bx) ** 2 + (my - by) ** 2);
+            if (dist < 180) {
+                // Move away from cursor
+                const angle = Math.atan2(by - my, bx - mx);
+                const dx = Math.cos(angle) * 120;
+                const dy = Math.sin(angle) * 120;
+                setRunawayBtnOffset({ x: dx, y: dy });
+            } else {
+                setRunawayBtnOffset(runawayBtnHome);
+            }
+        }
+        window.addEventListener('mousemove', handleMouseMove);
+        return () => window.removeEventListener('mousemove', handleMouseMove);
+    }, [phase, showWishButton, showWishPrompt]);
     const [wishPromptPosition, setWishPromptPosition] = useState<{ left: number; top: number }>({
         left: 12,
         top: 20,
@@ -61,6 +122,8 @@ export default function BirthdayExperience({ photos }: BirthdayExperienceProps) 
     const buttonStepTimeoutsRef = useRef<number[]>([]);
     const rainStartTimeoutsRef = useRef<number[]>([]);
     const rainUiTimeoutsRef = useRef<number[]>([]);
+    const preWishTimeoutsRef = useRef<number[]>([]);
+    const countdownUiTimeoutsRef = useRef<number[]>([]);
 
     useEffect(() => {
         if (phase !== 'music') return;
@@ -142,6 +205,57 @@ export default function BirthdayExperience({ photos }: BirthdayExperienceProps) 
     }, [phase]);
 
     useEffect(() => {
+        if (phase !== 'cakeWish') return;
+
+        preWishTimeoutsRef.current.forEach(id => window.clearTimeout(id));
+        preWishTimeoutsRef.current = [];
+        setShowWishButton(false);
+        setPreWishPhrase(null);
+        setIsPreWishPhraseVisible(false);
+
+        const PHRASE_TOTAL = PRE_WISH_PHRASE_FADE_MS + PRE_WISH_PHRASE_VISIBLE_MS + PRE_WISH_PHRASE_OUT_MS + PRE_WISH_PHRASE_GAP_MS;
+        const INITIAL_DELAY = 700;
+
+        PRE_WISH_PHRASES.forEach((text, i) => {
+            const startAt = INITIAL_DELAY + i * PHRASE_TOTAL;
+
+            const showId = window.setTimeout(() => {
+                const pos = getWishPromptPosition();
+                setPreWishPhrase({ text, ...pos });
+
+                const visibleId = window.setTimeout(() => {
+                    setIsPreWishPhraseVisible(true);
+                }, 30);
+                preWishTimeoutsRef.current.push(visibleId);
+
+                const fadeOutId = window.setTimeout(() => {
+                    setIsPreWishPhraseVisible(false);
+
+                    const hideId = window.setTimeout(() => {
+                        setPreWishPhrase(null);
+                    }, PRE_WISH_PHRASE_OUT_MS);
+                    preWishTimeoutsRef.current.push(hideId);
+                }, PRE_WISH_PHRASE_FADE_MS + PRE_WISH_PHRASE_VISIBLE_MS);
+                preWishTimeoutsRef.current.push(fadeOutId);
+            }, startAt);
+
+            preWishTimeoutsRef.current.push(showId);
+        });
+
+        const buttonDelay = INITIAL_DELAY + PRE_WISH_PHRASES.length * PHRASE_TOTAL;
+        const buttonId = window.setTimeout(() => {
+            setShowWishButton(true);
+        }, buttonDelay);
+        preWishTimeoutsRef.current.push(buttonId);
+
+        return () => {
+            preWishTimeoutsRef.current.forEach(id => window.clearTimeout(id));
+            preWishTimeoutsRef.current = [];
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [phase]);
+
+    useEffect(() => {
         const inCakeScene = phase === 'cakeWish' || phase === 'rainfall' || phase === 'cakeReturn';
 
         if (!inCakeScene) {
@@ -161,10 +275,52 @@ export default function BirthdayExperience({ photos }: BirthdayExperienceProps) 
             rainStartTimeoutsRef.current = [];
             rainUiTimeoutsRef.current.forEach(id => window.clearTimeout(id));
             rainUiTimeoutsRef.current = [];
+            preWishTimeoutsRef.current.forEach(id => window.clearTimeout(id));
+            preWishTimeoutsRef.current = [];
+            countdownUiTimeoutsRef.current.forEach(id => window.clearTimeout(id));
+            countdownUiTimeoutsRef.current = [];
             setIsRainStopping(false);
             setShowBackToCakeButton(false);
+            setShowWishButton(false);
+            setPreWishPhrase(null);
+            setIsPreWishPhraseVisible(false);
+            setShowRunawayButton(false);
+            setIsRunawayButtonFading(false);
+            setRunawayBtnOffset(runawayBtnHome);
+            setIsReadyButtonFading(false);
+            setIsBulbsButtonFading(false);
+            setIsWishButtonsFading(false);
+            setIsBackToCakeButtonFading(false);
+            setIsCutePhotosButtonFading(false);
+            setCountdownHintText('It is soooooon babe');
+            setIsCountdownDone(false);
+            setIsCountdownButtonCentered(false);
+            setIsCountdownButtonAutoPressing(false);
         }
     }, [phase]);
+
+    const handleCountdownBulbsClick = () => {
+        if (isCountdownDone || isCountdownButtonAutoPressing) {
+            return;
+        }
+        setCountdownHintText('You have to wait silly ahah');
+    };
+
+    const handleCountdownComplete = () => {
+        setIsCountdownDone(true);
+        setIsCountdownButtonCentered(true);
+
+        const pressId = window.setTimeout(() => {
+            setIsCountdownButtonAutoPressing(true);
+        }, COUNTDOWN_BUTTON_SLIDE_MS);
+
+        const continueId = window.setTimeout(() => {
+            setIsCountdownButtonAutoPressing(false);
+            setPhase('bulbs');
+        }, COUNTDOWN_BUTTON_SLIDE_MS + BUTTON_FADE_MS);
+
+        countdownUiTimeoutsRef.current.push(pressId, continueId);
+    };
 
     useEffect(() => {
         rainUiTimeoutsRef.current.forEach(id => window.clearTimeout(id));
@@ -191,13 +347,49 @@ export default function BirthdayExperience({ photos }: BirthdayExperienceProps) 
     const showBulbs = phase === 'bulbs' || phase === 'music' || phase === 'cakeIntro';
     const isMusicPhase = phase === 'music';
 
-    const handleLightBulbs = () => setPhase('bulbs');
-    const handleAddMusic = () => setPhase('music');
+    const handleLightBulbs = () => {
+        setIsReadyButtonFading(true);
+        const id = window.setTimeout(() => {
+            setPhase('bulbs');
+            setIsReadyButtonFading(false);
+        }, BUTTON_FADE_MS);
+        buttonStepTimeoutsRef.current.push(id);
+    };
+    const handleAddMusic = () => {
+        setIsBulbsButtonFading(true);
+
+        const id = window.setTimeout(() => {
+            setPhase('music');
+            setIsBulbsButtonFading(false);
+        }, BUTTON_FADE_MS);
+        buttonStepTimeoutsRef.current.push(id);
+    };
     const handleBackToCake = () => {
         rainStartTimeoutsRef.current.forEach(id => window.clearTimeout(id));
         rainStartTimeoutsRef.current = [];
-        setIsRainStopping(true);
-        setShowBackToCakeButton(false);
+        setIsBackToCakeButtonFading(true);
+
+        const id = window.setTimeout(() => {
+            setIsRainStopping(true);
+            setShowBackToCakeButton(false);
+            setIsBackToCakeButtonFading(false);
+        }, BUTTON_FADE_MS);
+        buttonStepTimeoutsRef.current.push(id);
+    };
+
+    const handleShowCutePhotos = () => {
+        rainUiTimeoutsRef.current.forEach(id => window.clearTimeout(id));
+        rainUiTimeoutsRef.current = [];
+        setIsCutePhotosButtonFading(true);
+
+        const id = window.setTimeout(() => {
+            setIsCakeBlown(true);
+            setIsRainStopping(false);
+            setShowBackToCakeButton(false);
+            setIsCutePhotosButtonFading(false);
+            setPhase('rainfall');
+        }, BUTTON_FADE_MS);
+        buttonStepTimeoutsRef.current.push(id);
     };
 
     const handleRainStopped = () => {
@@ -237,6 +429,17 @@ export default function BirthdayExperience({ photos }: BirthdayExperienceProps) 
 
         if (wishButtonStep === 2) {
             setIsCakeBlown(true);
+            setIsWishButtonsFading(true);
+            setRunawayBtnOffset(runawayBtnHome);
+            setIsRunawayButtonFading(true);
+
+            const hideButtonsId = window.setTimeout(() => {
+                setShowWishButton(false);
+                setShowRunawayButton(false);
+                setIsWishButtonsFading(false);
+                setIsRunawayButtonFading(false);
+            }, BUTTON_FADE_MS);
+            buttonStepTimeoutsRef.current.push(hideButtonsId);
 
             const rainId = window.setTimeout(() => {
                 setPhase('rainfall');
@@ -253,7 +456,20 @@ export default function BirthdayExperience({ photos }: BirthdayExperienceProps) 
             }, OF_COURSE_DELAY_MS);
             buttonStepTimeoutsRef.current.push(stepId);
         } else if (wishButtonStep === 1) {
-            setWishButtonStep(2);
+            // Fade out the wish prompt when 'of course' is clicked
+            setIsWishPromptFading(true);
+            setIsWishPromptVisible(false);
+            setIsRunawayButtonFading(true);
+            setRunawayBtnOffset(runawayBtnHome);
+            const hideId = window.setTimeout(() => {
+                setShowWishPrompt(false);
+                setIsWishPromptFading(false);
+                setIsWishPromptVisible(false);
+                setShowRunawayButton(false);
+                setIsRunawayButtonFading(false);
+                setWishButtonStep(2);
+            }, Math.max(WISH_PROMPT_FADE_MS, RUNAWAY_BUTTON_FADE_MS));
+            wishPromptTimeoutsRef.current.push(hideId);
         }
 
         if (hasShownWishPrompt) {
@@ -271,24 +487,14 @@ export default function BirthdayExperience({ photos }: BirthdayExperienceProps) 
         const revealId = window.setTimeout(() => {
             setWishPromptPosition(getWishPromptPosition());
             setShowWishPrompt(true);
+            setShowRunawayButton(true);
+            setIsRunawayButtonFading(false);
 
             const appearId = window.setTimeout(() => {
                 setIsWishPromptVisible(true);
             }, 30);
             wishPromptTimeoutsRef.current.push(appearId);
-
-            const fadeId = window.setTimeout(() => {
-                setIsWishPromptFading(true);
-                setIsWishPromptVisible(false);
-
-                const hideId = window.setTimeout(() => {
-                    setShowWishPrompt(false);
-                    setIsWishPromptFading(false);
-                    setIsWishPromptVisible(false);
-                }, WISH_PROMPT_FADE_MS);
-                wishPromptTimeoutsRef.current.push(hideId);
-            }, WISH_PROMPT_VISIBLE_MS);
-            wishPromptTimeoutsRef.current.push(fadeId);
+            // Do NOT schedule fade out or hide. The prompt stays until 'of course' is clicked.
         }, WISH_PROMPT_DELAY_MS);
 
         wishPromptTimeoutsRef.current.push(revealId);
@@ -353,14 +559,40 @@ export default function BirthdayExperience({ photos }: BirthdayExperienceProps) 
                 </div>
             )}
 
-            {phase === 'countdown' && <BirthdayCountdown onComplete={() => setPhase('ready')} />}
+            {phase === 'countdown' && <BirthdayCountdown onComplete={handleCountdownComplete} />}
+
+            {phase === 'countdown' && (
+                <div
+                    className="fixed left-1/2 z-10001 flex -translate-x-1/2 flex-col items-center gap-3 transition-all"
+                    style={{
+                        top: isCountdownButtonCentered ? '50%' : 'calc(50% + 145px)',
+                        transitionDuration: `${COUNTDOWN_BUTTON_SLIDE_MS}ms`,
+                        transitionTimingFunction: 'cubic-bezier(0.2, 0.84, 0.24, 1)',
+                    }}
+                >
+                    <button
+                        type="button"
+                        onClick={handleCountdownBulbsClick}
+                        className="cursor-pointer rounded-full border border-white/40 bg-white/10 px-6 py-4 font-mono text-base leading-none tracking-[0.06em] text-white transition-opacity duration-300"
+                        style={{ opacity: isCountdownButtonAutoPressing ? 0 : 1 }}
+                    >
+                        🩷 light the bulbs 🩷
+                    </button>
+                    {!isCountdownDone && (
+                        <p className="text-center font-mono text-sm tracking-[0.05em] text-white/78">
+                            {countdownHintText}
+                        </p>
+                    )}
+                </div>
+            )}
 
             {phase === 'ready' && (
                 <div className="fixed inset-0 z-30 grid place-items-center bg-black p-6">
                     <button
                         type="button"
                         onClick={handleLightBulbs}
-                        className="cursor-pointer rounded-full border border-white/40 bg-white/10 px-6 py-4 font-mono text-base leading-none tracking-[0.06em] text-white"
+                        className="cursor-pointer rounded-full border border-white/40 bg-white/10 px-6 py-4 font-mono text-base leading-none tracking-[0.06em] text-white transition-opacity duration-300"
+                        style={{ opacity: isReadyButtonFading ? 0 : 1 }}
                     >
                         🩷 light the bulbs 🩷
                     </button>
@@ -419,20 +651,54 @@ export default function BirthdayExperience({ photos }: BirthdayExperienceProps) 
                 <button
                     type="button"
                     onClick={handleAddMusic}
-                    className="fixed bottom-[clamp(20px,5vh,44px)] left-1/2 z-40 -translate-x-1/2 cursor-pointer rounded-full border border-black/20 bg-white/65 px-6 py-4 font-mono text-base leading-none tracking-[0.06em] text-black hover:bg-white/75"
+                    className="fixed bottom-[clamp(20px,5vh,44px)] left-1/2 z-40 -translate-x-1/2 cursor-pointer rounded-full border border-black/20 bg-white/65 px-6 py-4 font-mono text-base leading-none tracking-[0.06em] text-black transition-opacity duration-1000 hover:bg-white/75"
+                    style={{ opacity: isBulbsButtonFading ? 0 : 1 }}
                 >
                     🩷 oh MinJeong, my MinJeong 🩷
                 </button>
             )}
 
-            {phase === 'cakeWish' && (
-                <button
-                    type="button"
-                    onClick={handleMakeWish}
-                    className="fixed bottom-[clamp(20px,5vh,44px)] left-1/2 z-50 -translate-x-1/2 cursor-pointer rounded-full border border-white/45 bg-white/14 px-7 py-4 font-mono text-base leading-none tracking-[0.08em] text-white backdrop-blur-sm hover:bg-white/22"
+            {phase === 'cakeWish' && preWishPhrase && (
+                <p
+                    className={`pointer-events-none fixed z-55 -translate-x-1/2 -translate-y-1/2 text-[clamp(1.1rem,3.2vw,2.3rem)] font-black tracking-tight text-pink-200 transition-opacity duration-500 [text-shadow:0_10px_30px_rgba(0,0,0,0.55)] ${isPreWishPhraseVisible ? 'opacity-100' : 'opacity-0'}`}
+                    style={{ left: `${preWishPhrase.left}%`, top: `${preWishPhrase.top}%` }}
                 >
-                    {wishButtonText}
-                </button>
+                    {preWishPhrase.text}
+                </p>
+            )}
+
+            {phase === 'cakeWish' && showWishButton && (
+                <div
+                    className="fixed bottom-[clamp(20px,5vh,44px)] left-1/2 z-50 flex gap-4 -translate-x-1/2 transition-opacity duration-300"
+                    style={{ opacity: isWishButtonsFading ? 0 : 1 }}
+                >
+                    <button
+                        type="button"
+                        onClick={handleMakeWish}
+                        className="cursor-pointer rounded-full border border-pink-400 bg-pink-200 px-7 py-4 font-mono text-base leading-none tracking-[0.08em] text-pink-700 backdrop-blur-sm transition-transform duration-500 ease-out hover:bg-white/22"
+                        style={{
+                            transform: showRunawayButton ? 'translateX(-64px)' : 'translateX(0)',
+                        }}
+                    >
+                        {wishButtonText}
+                    </button>
+                    {showRunawayButton && (
+                        <button
+                            ref={runawayBtnRef}
+                            type="button"
+                            onMouseEnter={() => setIsRunawayHovered(true)}
+                            onMouseLeave={() => setIsRunawayHovered(false)}
+                            style={{
+                                transform: `translate(${runawayBtnOffset.x}px, ${runawayBtnOffset.y}px)`,
+                                transition: 'transform 0.22s cubic-bezier(0.7,0.2,0.2,1), opacity 0.42s ease',
+                                opacity: isRunawayButtonFading ? 0 : 1,
+                            }}
+                            className="w-40 cursor-pointer rounded-full border border-white/45 bg-white/14 px-7 py-4 font-mono text-base leading-none tracking-[0.08em] text-white backdrop-blur-sm shadow-lg"
+                        >
+                            {isRunawayHovered ? '😡' : 'Hell Nah'}
+                        </button>
+                    )}
+                </div>
             )}
 
             {phase === 'cakeWish' && showWishPrompt && (
@@ -449,9 +715,21 @@ export default function BirthdayExperience({ photos }: BirthdayExperienceProps) 
                 <button
                     type="button"
                     onClick={handleBackToCake}
-                    className="fixed bottom-[clamp(20px,5vh,44px)] left-1/2 z-50 -translate-x-1/2 cursor-pointer rounded-full border border-white/45 bg-white/14 px-7 py-4 font-mono text-base leading-none tracking-[0.08em] text-white backdrop-blur-sm hover:bg-white/22"
+                    className="fixed bottom-[clamp(20px,5vh,44px)] left-1/2 z-50 -translate-x-1/2 cursor-pointer rounded-full border border-white/45 bg-white/14 px-7 py-4 font-mono text-base leading-none tracking-[0.08em] text-white transition-opacity duration-300 backdrop-blur-sm hover:bg-white/22"
+                    style={{ opacity: isBackToCakeButtonFading ? 0 : 1 }}
                 >
-                    back to the cake
+                    🎂 cakeeeeeeeeeee 🎂
+                </button>
+            )}
+
+            {phase === 'cakeReturn' && (
+                <button
+                    type="button"
+                    onClick={handleShowCutePhotos}
+                    className="fixed bottom-[clamp(20px,5vh,44px)] left-1/2 z-50 -translate-x-1/2 cursor-pointer rounded-full border border-white/45 bg-white/14 px-7 py-4 font-mono text-base leading-none tracking-[0.08em] text-white transition-opacity duration-300 backdrop-blur-sm hover:bg-white/22"
+                    style={{ opacity: isCutePhotosButtonFading ? 0 : 1 }}
+                >
+                    🥰 your cute photos 🥰
                 </button>
             )}
 
